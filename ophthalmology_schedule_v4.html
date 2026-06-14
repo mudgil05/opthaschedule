@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ophthalmology PG Schedule — NMC</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+:root{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--border:#dde3ea;
+  --teal:#0e7490;--teal-light:#cffafe;--teal-dark:#0a5569;
+  --indigo:#4f46e5;--indigo-light:#e0e7ff;
+  --rose:#e11d48;--rose-light:#ffe4e6;
+  --green:#16a34a;--green-light:#dcfce7;
+  --slate:#334155;--text:#0f172a;--muted:#64748b;
+  --radius:10px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+/* HEADER */
+.hdr{background:linear-gradient(135deg,var(--teal-dark),var(--teal) 60%,#0891b2);color:#fff;padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.18);position:sticky;top:0;z-index:100}
+.hdr-title{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700}
+.hdr-sub{font-size:11px;opacity:.7;font-weight:400;margin-left:4px}
+.hdr-acts{display:flex;gap:8px}
+/* CONTAINER */
+.wrap{max-width:1440px;margin:0 auto;padding:28px 24px}
+/* STEPS */
+.steps{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:28px;box-shadow:var(--shadow)}
+.step{flex:1;padding:14px 12px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);border-right:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:8px;user-select:none;transition:all .2s}
+.step:last-child{border-right:none}
+.step.active{background:var(--teal);color:#fff;font-weight:600}
+.step.done{background:var(--green-light);color:var(--green)}
+.snum{width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step.active .snum{background:rgba(255,255,255,.3)}
+.step.done .snum{background:var(--green);color:#fff}
+.step:not(.active):not(.done) .snum{background:#cbd5e1;color:#fff}
+/* PANELS */
+.panel{display:none;animation:fadeIn .22s ease}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px}
+.card-hdr{padding:16px 22px 12px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;gap:10px}
+.card-hdr h2{font-size:15px;font-weight:700;color:var(--slate)}
+.card-body{padding:22px}
+/* UPLOAD ZONE */
+.dropzone{border:2px dashed var(--border);border-radius:var(--radius);padding:52px 28px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2)}
+.dropzone:hover,.dropzone.drag{border-color:var(--teal);background:var(--teal-light)}
+.dz-icon{font-size:44px;margin-bottom:12px}
+.dz-title{font-size:15px;font-weight:600;color:var(--slate);margin-bottom:6px}
+.dz-sub{font-size:12px;color:var(--muted)}
+#pdf-input{display:none}
+/* PROGRESS */
+.pbar-wrap{background:#e2e8f0;border-radius:99px;height:7px;overflow:hidden}
+.pbar-fill{height:100%;background:linear-gradient(90deg,var(--teal),#0891b2);border-radius:99px;transition:width .35s}
+/* LOG */
+.logbox{background:#1e293b;color:#94a3b8;border-radius:8px;padding:12px 14px;font-family:monospace;font-size:11px;max-height:180px;overflow-y:auto;margin-top:10px}
+.ll{margin-bottom:2px}.ll.ok{color:#4ade80}.ll.w{color:#facc15}.ll.e{color:#f87171}.ll.i{color:#c084fc}
+/* RESULT BANNERS */
+.banner-ok{display:flex;align-items:center;gap:10px;background:var(--green-light);border:1px solid #bbf7d0;border-radius:8px;padding:14px 18px;margin-top:14px}
+.banner-err{display:flex;align-items:flex-start;gap:10px;background:var(--rose-light);border:1px solid #fecdd3;border-radius:8px;padding:14px 18px;margin-top:14px}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .18s}
+.btn-p{background:var(--teal);color:#fff}.btn-p:hover{background:var(--teal-dark)}
+.btn-s{background:#fff;color:var(--slate);border:1.5px solid var(--border)}.btn-s:hover{border-color:var(--teal);color:var(--teal)}
+.btn-g{background:var(--green);color:#fff}.btn-g:hover{background:#15803d}
+.btn-r{background:var(--rose);color:#fff}
+.btn-lg{padding:11px 26px;font-size:14px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+/* FACULTY */
+.fac-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px}
+.fac-card{border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;align-items:center;gap:12px;background:var(--surface2)}
+.pri-badge{width:34px;height:34px;border-radius:50%;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.p1{background:#fef9c3;color:#854d0e}.p2{background:#f0fdf4;color:#14532d}
+.p3{background:#eff6ff;color:#1e3a8a}.p4{background:#fdf4ff;color:#581c87}
+.fac-name{font-size:13px;font-weight:600}
+.fac-role{font-size:11px;color:var(--muted)}
+/* LEAVE */
+.leave-sec{border-top:1px solid var(--border);padding-top:18px;margin-top:4px}
+.doc-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.dchip{padding:6px 14px;border-radius:99px;border:1.5px solid var(--border);font-size:12px;font-weight:500;cursor:pointer;background:#fff;transition:all .18s}
+.dchip.sel{background:var(--teal);border-color:var(--teal);color:#fff}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:340px}
+.cal-hdr{text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:5px 0;text-transform:uppercase}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;border-radius:6px;cursor:pointer;transition:all .15s;border:1.5px solid transparent;font-weight:500}
+.cal-day:hover:not(.empty):not(.disabled){border-color:var(--teal);background:var(--teal-light)}
+.cal-day.sel{background:var(--teal);color:#fff;border-color:var(--teal)}
+.cal-day.empty,.cal-day.disabled{cursor:default;opacity:.25}
+.cal-day.sunday{color:var(--rose)}
+.ltags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.ltag{padding:3px 9px;border-radius:99px;background:var(--rose-light);color:var(--rose);font-size:11px;font-weight:500;display:flex;align-items:center;gap:5px}
+.ltag button{background:none;border:none;cursor:pointer;color:inherit;font-size:12px;line-height:1;padding:0}
+/* SCHEDULE TABLE */
+.tbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+.fchips{display:flex;gap:6px;flex-wrap:wrap}
+.fchip{padding:5px 11px;border-radius:99px;border:1.5px solid var(--border);font-size:12px;font-weight:500;cursor:pointer;background:#fff;transition:all .15s}
+.fchip.active{background:var(--indigo);border-color:var(--indigo);color:#fff}
+.tbl-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border)}
+table.sch{width:100%;border-collapse:collapse;font-size:12px;background:#fff}
+table.sch th{background:var(--teal);color:#fff;padding:10px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+table.sch td{padding:9px 12px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+table.sch tr:hover td{background:#f8fafc}
+table.sch tr:last-child td{border-bottom:none}
+.dt-date{font-weight:700;color:var(--slate);white-space:nowrap}
+.dt-day{font-size:10px;color:var(--muted)}
+.sunday-row .dt-date{color:var(--rose)}
+.sblk{padding:7px 9px;border-radius:7px;margin-bottom:3px;border-left:3px solid}
+.sblk-m{background:#eff6ff;border-color:#3b82f6}
+.sblk-a{background:#f0fdf4;border-color:var(--green)}
+.sdept{font-size:10px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.3px}
+.stopic{font-size:11.5px;color:var(--text);margin:2px 0 1px;font-weight:500}
+.scomp{font-size:10.5px;color:var(--muted);font-style:italic}
+.scode{display:inline-block;padding:1px 7px;border-radius:99px;background:var(--indigo-light);color:var(--indigo);font-size:10px;font-weight:700;margin-top:3px}
+.btag{display:inline-block;padding:1px 7px;border-radius:99px;font-size:10px;font-weight:700;margin:1px}
+.bA{background:#fef9c3;color:#854d0e}.bB{background:#dcfce7;color:#14532d}
+.bC{background:#dbeafe;color:#1e40af}.bD{background:#f3e8ff;color:#6b21a8}
+.bop{outline:2px solid currentColor;outline-offset:1px}
+.fpill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600}
+.f1{background:#fef9c3;color:#854d0e}.f2{background:#dcfce7;color:#14532d}
+.f3{background:#dbeafe;color:#1e40af}.f4{background:#f3e8ff;color:#6b21a8}
+.fsub{background:#fee2e2;color:#991b1b}
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow)}
+.stico{font-size:26px}
+.stv{font-size:22px;font-weight:800;color:var(--teal);line-height:1}
+.stl{font-size:11px;color:var(--muted);margin-top:2px}
+/* TOAST */
+.toasts{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:7px;pointer-events:none}
+.toast{background:var(--slate);color:#fff;padding:11px 16px;border-radius:8px;font-size:12.5px;font-weight:500;box-shadow:var(--shadow);animation:tslide .25s ease,tfade .3s 2.7s ease forwards;pointer-events:all}
+.toast.ok{background:var(--green)}.toast.err{background:var(--rose)}.toast.info{background:var(--indigo)}
+@keyframes tslide{from{transform:translateY(18px);opacity:0}to{opacity:1;transform:none}}
+@keyframes tfade{to{opacity:0;transform:translateY(8px)}}
+/* PREVIEW TABLE */
+.prev-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.prev-tbl th{background:var(--teal);color:#fff;padding:5px 8px;font-size:10px;font-weight:700}
+.prev-tbl td{padding:4px 8px;border-bottom:1px solid var(--border)}
+/* SPINNER */
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* OCR STATUS */
+.ocr-box{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:14px 18px;margin-top:12px;font-size:12px;color:#94a3b8;font-family:monospace}
+.ocr-box strong{color:#c084fc}
+/* MONTH ROW */
+.mrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mrow label{font-size:13px;font-weight:600;color:var(--slate)}
+.mrow select,.mrow input[type=number]{padding:7px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:#fff}
+/* LEGEND */
+.legend{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:11.5px;margin-top:10px}
+.leg-item{display:flex;align-items:center;gap:4px}
+@media(max-width:768px){
+  .fac-grid{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr 1fr}
+  .wrap{padding:14px}
+  .step span{display:none}
+}
+@media print{
+  .hdr,.steps,.tbar,.btn,.toasts{display:none!important}
+  .tbl-wrap{border:none}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+<div class="toasts" id="toasts"></div>
+
+<header class="hdr">
+  <div class="hdr-title">
+    <span>👁️</span> Ophthalmology PG Schedule
+    <span class="hdr-sub">NMC — Works 100% offline, no server needed</span>
+  </div>
+  <div class="hdr-acts">
+    <button class="btn btn-s" style="padding:6px 12px;font-size:12px" onclick="window.print()">🖨️ Print</button>
+    <button class="btn btn-g" style="padding:6px 12px;font-size:12px" onclick="exportExcel()">📊 Excel</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- STEP TABS -->
+  <div class="steps">
+    <div class="step active" id="tab1" onclick="goStep(1)"><div class="snum">1</div><span>Upload PDF</span></div>
+    <div class="step" id="tab2" onclick="goStep(2)"><div class="snum">2</div><span>Faculty & Leave</span></div>
+    <div class="step" id="tab3" onclick="goStep(3)"><div class="snum">3</div><span>Schedule</span></div>
+  </div>
+
+  <!-- ══════════ PANEL 1: UPLOAD ══════════ -->
+  <div class="panel active" id="p1">
+    <div class="card">
+      <div class="card-hdr">
+        <span style="font-size:20px">📄</span>
+        <h2>Upload Monthly Schedule PDF</h2>
+        <span style="margin-left:auto;background:#7c3aed;color:#fff;padding:2px 10px;border-radius:99px;font-size:10px;font-weight:700">OCR — Works on any PDF / Photo</span>
+      </div>
+      <div class="card-body">
+
+        <div style="background:var(--teal-light);border:1px solid #a5f3fc;border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:12.5px;color:#0e7490">
+          <strong>✅ Fully offline.</strong> Uses Tesseract OCR in your browser — no internet API, no server. Safe to host on GitHub Pages and share freely.
+          Supports photographed, scanned, rotated, or digital PDFs.
+        </div>
+
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('pdf-input').click()"
+             ondragover="onDrag(event)" ondragleave="offDrag()" ondrop="onDrop(event)">
+          <div class="dz-icon" id="dz-icon">📂</div>
+          <div class="dz-title" id="dz-title">Drop your PDF here or click to browse</div>
+          <div class="dz-sub">Any PDF — photographed, scanned, rotated, digital</div>
+        </div>
+        <input type="file" id="pdf-input" accept=".pdf,image/*" onchange="handleFile(event)">
+
+        <!-- PROGRESS -->
+        <div id="prog-wrap" style="display:none;margin-top:16px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;font-weight:500">
+            <span id="prog-label">Working…</span><span id="prog-pct">0%</span>
+          </div>
+          <div class="pbar-wrap"><div class="pbar-fill" id="pbar" style="width:0%"></div></div>
+          <div class="logbox" id="logbox"></div>
+        </div>
+
+        <!-- OCR STATUS -->
+        <div id="ocr-box" class="ocr-box" style="display:none">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div class="spin"></div>
+            <strong>Tesseract OCR running in your browser…</strong>
+          </div>
+          <div id="ocr-msg" style="color:#94a3b8">Initialising OCR engine…</div>
+          <div style="margin-top:6px">
+            <div class="pbar-wrap" style="height:4px"><div class="pbar-fill" id="ocr-pbar" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <!-- SUCCESS -->
+        <div id="res-ok" style="display:none">
+          <div class="banner-ok">
+            <span style="font-size:22px">✅</span>
+            <div>
+              <div style="font-weight:700;font-size:14px;color:var(--green)">PDF parsed successfully</div>
+              <div style="font-size:12px;color:#166534" id="res-summary"></div>
+            </div>
+          </div>
+
+          <!-- RAW OCR TEXT (DEBUG) -->
+          <details style="margin-top:12px">
+            <summary style="cursor:pointer;font-size:12px;color:var(--muted);font-weight:600">🔍 View raw OCR text (debug)</summary>
+            <pre id="raw-text" style="background:#1e293b;color:#94a3b8;padding:10px;border-radius:8px;font-size:10px;max-height:200px;overflow:auto;margin-top:8px;white-space:pre-wrap"></pre>
+          </details>
+
+          <!-- PARSED PREVIEW -->
+          <div id="prev-wrap" style="margin-top:14px;display:none">
+            <div style="font-size:12px;font-weight:600;color:var(--slate);margin-bottom:6px">Preview of extracted schedule:</div>
+            <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto">
+              <table class="prev-tbl" id="prev-tbl"></table>
+            </div>
+          </div>
+
+          <div style="margin-top:18px">
+            <div class="card" style="box-shadow:none">
+              <div class="card-hdr"><span>📅</span><h2>Month & Year (auto-detected from PDF)</h2></div>
+              <div class="card-body" style="padding:16px">
+                <div class="mrow">
+                  <label>Month:</label>
+                  <select id="sel-month">
+                    <option value="0">January</option><option value="1">February</option>
+                    <option value="2">March</option><option value="3">April</option>
+                    <option value="4">May</option><option value="5">June</option>
+                    <option value="6">July</option><option value="7">August</option>
+                    <option value="8">September</option><option value="9">October</option>
+                    <option value="10">November</option><option value="11">December</option>
+                  </select>
+                  <label>Year:</label>
+                  <input type="number" id="sel-year" value="2026" min="2020" max="2035" style="width:86px">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:18px;text-align:right">
+            <button class="btn btn-p btn-lg" onclick="goStep(2)">Continue to Faculty Setup →</button>
+          </div>
+        </div>
+
+        <!-- ERROR -->
+        <div id="res-err" style="display:none">
+          <div class="banner-err">
+            <span style="font-size:22px">❌</span>
+            <div>
+              <div style="font-weight:700;font-size:14px;color:var(--rose)">Extraction failed</div>
+              <div style="font-size:12px;color:#881337;margin-top:4px" id="err-msg"></div>
+              <button class="btn btn-r" style="margin-top:10px;font-size:12px;padding:7px 14px" onclick="resetUI()">↺ Try Again</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ PANEL 2: FACULTY ══════════ -->
+  <div class="panel" id="p2">
+    <div class="card">
+      <div class="card-hdr"><span style="font-size:20px">👩‍⚕️</span><h2>Faculty Priority & Leave Management</h2></div>
+      <div class="card-body">
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px">
+          Priority cycles by day-of-month: Day 1→Dr. Swati Singh, Day 2→Dr. Shimpa Kundan, Day 3→Dr. Neha Pednekar, Day 4→Dr. Niraj Kumar Yadav, Day 5→Dr. Swati Singh…
+          If a doctor is on leave, the next in priority order takes over automatically.
+        </p>
+        <div class="fac-grid">
+          <div class="fac-card"><div class="pri-badge p1">1</div><div><div class="fac-name">Dr. Swati Singh</div><div class="fac-role">Priority 1 — First each cycle</div></div></div>
+          <div class="fac-card"><div class="pri-badge p2">2</div><div><div class="fac-name">Dr. Shimpa Kundan</div><div class="fac-role">Priority 2</div></div></div>
+          <div class="fac-card"><div class="pri-badge p3">3</div><div><div class="fac-name">Dr. Neha Pednekar</div><div class="fac-role">Priority 3</div></div></div>
+          <div class="fac-card"><div class="pri-badge p4">4</div><div><div class="fac-name">Dr. Niraj Kumar Yadav</div><div class="fac-role">Priority 4</div></div></div>
+        </div>
+
+        <div class="leave-sec">
+          <h3 style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--slate)">⛔ Mark Leave / Unavailability</h3>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Select a doctor → tap dates they are unavailable. Only dates from your PDF are selectable.</p>
+          <div class="doc-chips">
+            <div class="dchip" onclick="selDoc(0)">Dr. Swati Singh</div>
+            <div class="dchip" onclick="selDoc(1)">Dr. Shimpa Kundan</div>
+            <div class="dchip" onclick="selDoc(2)">Dr. Neha Pednekar</div>
+            <div class="dchip" onclick="selDoc(3)">Dr. Niraj Kumar Yadav</div>
+          </div>
+          <div id="cal-wrap" style="display:none;margin-top:14px">
+            <div style="font-size:12px;font-weight:600;color:var(--slate);margin-bottom:8px" id="cal-title">Select leave dates:</div>
+            <div class="cal-grid" id="cal-grid"></div>
+            <div class="ltags" id="ltags"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:26px;display:flex;justify-content:space-between">
+          <button class="btn btn-s" onclick="goStep(1)">← Back</button>
+          <button class="btn btn-p btn-lg" onclick="generateSchedule()">Generate Schedule →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ PANEL 3: SCHEDULE ══════════ -->
+  <div class="panel" id="p3">
+    <div class="stats" id="stats"></div>
+
+    <div class="card" style="box-shadow:none;margin-bottom:14px">
+      <div class="card-body" style="padding:14px 18px">
+        <div class="tbar">
+          <div>
+            <div style="font-size:15px;font-weight:700" id="sch-title">OP Schedule</div>
+            <div style="font-size:11px;color:var(--muted)" id="sch-sub"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div class="fchips" id="slot-chips">
+              <div class="fchip active" onclick="setSlotFilter('all',this)">All Sessions</div>
+              <div class="fchip" onclick="setSlotFilter('morning',this)">Morning 8–10 AM</div>
+              <div class="fchip" onclick="setSlotFilter('afternoon',this)">Afternoon 2–4 PM</div>
+            </div>
+            <div class="fchips" id="batch-chips">
+              <span style="font-size:10px;font-weight:700;color:var(--muted);align-self:center">Batch:</span>
+              <div class="fchip active" onclick="setBatchFilter('all',this)">All</div>
+              <div class="fchip" onclick="setBatchFilter('A',this)">A</div>
+              <div class="fchip" onclick="setBatchFilter('B',this)">B</div>
+              <div class="fchip" onclick="setBatchFilter('C',this)">C</div>
+              <div class="fchip" onclick="setBatchFilter('D',this)">D</div>
+            </div>
+          </div>
+        </div>
+        <div class="legend">
+          <span style="font-weight:700">Faculty:</span>
+          <div class="leg-item"><span class="fpill f1">P1</span> Dr. Swati Singh</div>
+          <div class="leg-item"><span class="fpill f2">P2</span> Dr. Shimpa Kundan</div>
+          <div class="leg-item"><span class="fpill f3">P3</span> Dr. Neha Pednekar</div>
+          <div class="leg-item"><span class="fpill f4">P4</span> Dr. Niraj Kumar Yadav</div>
+          <div class="leg-item"><span class="fpill fsub">SUB</span> Substitution</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="sch">
+        <thead><tr>
+          <th style="min-width:100px">Date & Day</th>
+          <th style="min-width:170px">8–9 AM</th>
+          <th style="min-width:170px">9–10 AM</th>
+          <th style="min-width:210px">2–3 PM</th>
+          <th style="min-width:210px">3–4 PM</th>
+          <th style="min-width:140px">Faculty</th>
+        </tr></thead>
+        <tbody id="sch-body"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center">
+      <button class="btn btn-s" onclick="goStep(2)">← Back</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-s" onclick="window.print()">🖨️ Print</button>
+        <button class="btn btn-g" onclick="exportExcel()">📊 Download Excel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ═══════════════ DATA ═══════════════
+const OP_DB = {
+  "OP1.1":{"topic":"Visual Acuity Assessment","comp":"Describe the physiology of vision"},
+  "OP1.2":{"topic":"Visual Acuity Assessment","comp":"Define, classify types and methods of correcting refractive errors"},
+  "OP1.3":{"topic":"Visual Acuity Assessment","comp":"Demonstrate steps in visual acuity assessment"},
+  "OP1.4":{"topic":"Visual Acuity Assessment","comp":"Enumerate indications of refractive surgery"},
+  "OP1.5":{"topic":"Visual Acuity Assessment","comp":"Define strabismus and amblyopia mechanism"},
+  "OP2.1":{"topic":"Lids, Adnexa & Orbit","comp":"Enumerate causes of common lid and adnexa conditions"},
+  "OP2.2":{"topic":"Lids, Adnexa & Orbit","comp":"Demonstrate clinical signs of lid conditions"},
+  "OP2.3":{"topic":"Lids, Adnexa & Orbit","comp":"Demonstrate lid clinical procedures under supervision"},
+  "OP2.4":{"topic":"Lids, Adnexa & Orbit","comp":"Describe orbital cellulitis etiology and management"},
+  "OP2.5":{"topic":"Lids, Adnexa & Orbit","comp":"Describe cavernous sinus thrombosis examination"},
+  "OP2.6":{"topic":"Lids, Adnexa & Orbit","comp":"Enumerate causes and management of proptosis"},
+  "OP2.7":{"topic":"Lids, Adnexa & Orbit","comp":"Classify orbital tumours and differentiate presentations"},
+  "OP2.8":{"topic":"Lids, Adnexa & Orbit","comp":"List investigations for orbital tumours"},
+  "OF2.7":{"topic":"Lids, Adnexa & Orbit — Retinoblastoma","comp":"Classify orbital tumours including Retinoblastoma"},
+  "OP3.1":{"topic":"Conjunctiva","comp":"History taking in red eye"},
+  "OP3.2":{"topic":"Conjunctiva","comp":"Examination of red eye"},
+  "OP3.3":{"topic":"Conjunctiva","comp":"Conjunctivitis"},
+  "OP3.4":{"topic":"Conjunctiva","comp":"Trachoma"},
+  "OP3.5":{"topic":"Conjunctiva","comp":"Vernal catarrh"},
+  "OP3.6":{"topic":"Conjunctiva","comp":"Pterygium"},
+  "OP3.7":{"topic":"Conjunctiva","comp":"Symblepharon"},
+  "OP3.8":{"topic":"Conjunctiva","comp":"Removal of foreign body from eye"},
+  "OP3.9":{"topic":"Conjunctiva","comp":"Instillation of eye drops"},
+  "OP3.10":{"topic":"Conjunctiva","comp":"Complications of conjunctival conditions"},
+  "OP4.1":{"topic":"Cornea","comp":"Corneal ulceration"},
+  "OP4.2":{"topic":"Cornea","comp":"Infective keratitis"},
+  "OP4.3":{"topic":"Cornea","comp":"Corneal oedema"},
+  "OP4.4":{"topic":"Cornea","comp":"Dry eye"},
+  "OP4.5":{"topic":"Cornea","comp":"Corneal blindness"},
+  "OP4.6":{"topic":"Cornea","comp":"Keratoplasty"},
+  "OP4.7":{"topic":"Cornea","comp":"Tarsorrhaphy"},
+  "OP4.8":{"topic":"Cornea","comp":"Removal of corneal foreign body"},
+  "OP4.9":{"topic":"Cornea","comp":"Eye donation and eye banking"},
+  "OP4.10":{"topic":"Cornea","comp":"Counselling for eye donation"},
+  "OP5.1":{"topic":"Sclera","comp":"Episcleritis"},
+  "OP5.2":{"topic":"Sclera","comp":"Scleritis"},
+  "OP6.1":{"topic":"Iris & Anterior Chamber","comp":"Clinical signs of intraocular inflammation"},
+  "OP6.2":{"topic":"Iris & Anterior Chamber","comp":"Acute vs chronic iridocyclitis"},
+  "OP6.3":{"topic":"Iris & Anterior Chamber","comp":"Systemic conditions presenting as iridocyclitis"},
+  "OP6.4":{"topic":"Iris & Anterior Chamber","comp":"Hyphema and hypopyon"},
+  "OP6.5":{"topic":"Iris & Anterior Chamber","comp":"Angle of anterior chamber"},
+  "OP6.6":{"topic":"Iris & Anterior Chamber","comp":"Conditions affecting anterior chamber"},
+  "OP6.7":{"topic":"Iris & Anterior Chamber","comp":"Glaucomas associated with anterior chamber depth"},
+  "OP6.8":{"topic":"Iris & Anterior Chamber","comp":"Investigations for uveal conditions"},
+  "OP6.9":{"topic":"Iris & Anterior Chamber","comp":"Therapy for anterior chamber conditions"},
+  "OP6.10":{"topic":"Iris & Anterior Chamber","comp":"Counselling patients with iris/anterior chamber conditions"},
+  "OP7.1":{"topic":"Lens","comp":"Surgical anatomy and metabolism of lens"},
+  "OP7.2":{"topic":"Lens","comp":"Cataract etiopathogenesis and complications"},
+  "OP7.3":{"topic":"Lens","comp":"Examination of cataract patient"},
+  "OP7.4":{"topic":"Lens","comp":"Types of cataract surgery"},
+  "OP7.5":{"topic":"Lens","comp":"Participation in cataract surgery team"},
+  "OP7.6":{"topic":"Lens","comp":"Consent and counselling for cataract surgery"},
+  "OP8.1":{"topic":"Retina & Optic Nerve","comp":"Retinal vascular occlusions"},
+  "OP8.2":{"topic":"Retina & Optic Nerve","comp":"Laser therapy indications"},
+  "OP8.3":{"topic":"Retina & Optic Nerve","comp":"Fundus examination"},
+  "OP8.4":{"topic":"Retina & Optic Nerve","comp":"Management of retinal diseases"},
+  "OP8.5":{"topic":"Retina & Optic Nerve","comp":"Diseases of optic nerve and visual pathway"},
+  "OP9.1":{"topic":"Miscellaneous","comp":"Examination of extraocular movements"},
+  "OP9.2":{"topic":"Miscellaneous","comp":"Heterotropia"},
+  "OP9.3":{"topic":"Miscellaneous","comp":"Refractive error correction in headache"},
+  "OP9.4":{"topic":"Miscellaneous","comp":"Avoidable blindness and NPCB"},
+  "OP9.5":{"topic":"Miscellaneous","comp":"Ocular injury evaluation and referral"}
+};
+
+const DOCS = [
+  {name:"Dr. Swati Singh",      short:"Swati S.",    cls:"f1"},
+  {name:"Dr. Shimpa Kundan",    short:"Shimpa K.",   cls:"f2"},
+  {name:"Dr. Neha Pednekar",    short:"Neha P.",     cls:"f3"},
+  {name:"Dr. Niraj Kumar Yadav",short:"Niraj K.Y.",  cls:"f4"}
+];
+const DAYS  = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MONS  = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+// ═══════════════ STATE ═══════════════
+let parsedDays   = [];
+let scheduleRows = [];
+let leaveMap     = {};
+let activeDoc    = null;
+let slotFilter   = 'all';
+let batchFilter  = 'all';
+let calDates     = new Set(); // date strings in PDF
+
+// ═══════════════ NAV ═══════════════
+function goStep(n){
+  if(n===2 && !parsedDays.length){ showToast("Upload a PDF first","err"); return; }
+  if(n===3 && !scheduleRows.length){ showToast("Generate schedule first","err"); return; }
+  [1,2,3].forEach(i=>{
+    document.getElementById('p'+i).classList.toggle('active',i===n);
+    const t=document.getElementById('tab'+i);
+    t.classList.remove('active','done');
+    if(i===n) t.classList.add('active');
+    else if(i<n) t.classList.add('done');
+  });
+  if(n===2) buildCalendar();
+}
+
+// ═══════════════ FILE HANDLING ═══════════════
+function onDrag(e){ e.preventDefault(); document.getElementById('dropzone').classList.add('drag'); }
+function offDrag(){ document.getElementById('dropzone').classList.remove('drag'); }
+function onDrop(e){ e.preventDefault(); offDrag(); const f=e.dataTransfer.files[0]; if(f) processFile(f); }
+function handleFile(e){ if(e.target.files[0]) processFile(e.target.files[0]); }
+
+function resetUI(){
+  document.getElementById('prog-wrap').style.display='none';
+  document.getElementById('ocr-box').style.display='none';
+  document.getElementById('res-ok').style.display='none';
+  document.getElementById('res-err').style.display='none';
+  document.getElementById('dz-icon').textContent='📂';
+  document.getElementById('dz-title').textContent='Drop your PDF here or click to browse';
+  document.getElementById('pdf-input').value='';
+}
+
+async function processFile(file){
+  const isPDF  = file.name.toLowerCase().endsWith('.pdf');
+  const isImg  = file.type.startsWith('image/');
+  if(!isPDF && !isImg){ showToast("Upload a PDF or image","err"); return; }
+
+  resetUI();
+  document.getElementById('dz-title').textContent = file.name;
+  document.getElementById('dz-icon').textContent  = '⏳';
+  document.getElementById('prog-wrap').style.display = 'block';
+  setBar(5); clearLog();
+  log('File: '+file.name);
+
+  try {
+    // Step 1: render all pages to canvas images
+    const pageImages = await renderPages(file, isPDF);
+    setBar(40);
+
+    // Step 2: OCR every page
+    const ocrTexts = await ocrPages(pageImages);
+    setBar(75);
+
+    const fullText = ocrTexts.join('\n\n--- PAGE BREAK ---\n\n');
+    document.getElementById('raw-text').textContent = fullText;
+
+    // Step 3: parse schedule from OCR text
+    parsedDays = parseOCRText(fullText);
+    log('Days found: '+parsedDays.length, parsedDays.length>0?'ok':'e');
+
+    if(parsedDays.length===0){
+      throw new Error('No schedule dates found in OCR output. Check the raw text in debug view above. The PDF may be too blurry — try a clearer scan.');
+    }
+
+    const opCount = countOP();
+    log('OP sessions found: '+opCount, 'ok');
+    setBar(100);
+
+    // Auto-set month/year
+    if(parsedDays[0]?.dateObj){
+      document.getElementById('sel-month').value = parsedDays[0].dateObj.getMonth();
+      document.getElementById('sel-year').value  = parsedDays[0].dateObj.getFullYear();
+    }
+
+    // Build calendar date set
+    calDates = new Set(parsedDays.map(d=>d.dateObj?.toDateString()).filter(Boolean));
+    showPreview();
+
+    document.getElementById('res-ok').style.display='block';
+    document.getElementById('res-summary').textContent = `${parsedDays.length} days parsed · ${opCount} OP Ophthalmology sessions found`;
+    document.getElementById('dz-icon').textContent='✅';
+    showToast('Parsed '+parsedDays.length+' days!','ok');
+
+  } catch(err){
+    log('ERROR: '+err.message,'e');
+    document.getElementById('err-msg').textContent = err.message;
+    document.getElementById('res-err').style.display='block';
+    document.getElementById('dz-icon').textContent='❌';
+    showToast('Failed: '+err.message,'err');
+    console.error(err);
+  }
+}
+
+// ── Render PDF pages to images ──
+async function renderPages(file, isPDF){
+  if(!isPDF){
+    const dataUrl = await toDataURL(file);
+    return [{dataUrl, w:0, h:0}];
+  }
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: new Uint8Array(buf)}).promise;
+  log('PDF pages: '+pdf.numPages);
+  const images = [];
+  for(let p=1;p<=pdf.numPages;p++){
+    const page = await pdf.getPage(p);
+    // Try original rotation first
+    let vp = page.getViewport({scale:2.5});
+    const canvas = document.createElement('canvas');
+    canvas.width=vp.width; canvas.height=vp.height;
+    await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+    images.push({dataUrl:canvas.toDataURL('image/png'), w:vp.width, h:vp.height, page:p});
+    log('Page '+p+' rendered: '+Math.round(vp.width)+'×'+Math.round(vp.height));
+    setBar(5 + Math.round((p/pdf.numPages)*30));
+  }
+  return images;
+}
+
+// ── Tesseract OCR ──
+async function ocrPages(pageImages){
+  document.getElementById('ocr-box').style.display='block';
+  const texts = [];
+  const worker = await Tesseract.createWorker('eng', 1, {
+    logger: m => {
+      if(m.status==='recognizing text'){
+        const pct = Math.round((m.progress||0)*100);
+        document.getElementById('ocr-msg').textContent = `Recognising text… ${pct}%`;
+        document.getElementById('ocr-pbar').style.width = pct+'%';
+      }
+    }
+  });
+  // Configure for table text
+  await worker.setParameters({
+    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,/-() ',
+    preserve_interword_spaces: '1'
+  });
+
+  for(let i=0;i<pageImages.length;i++){
+    document.getElementById('ocr-msg').textContent = `OCR on page ${i+1} of ${pageImages.length}…`;
+    log('OCR: page '+(i+1));
+
+    // Try original orientation
+    const {data} = await worker.recognize(pageImages[i].dataUrl);
+    let pageText = data.text;
+
+    // Heuristic: if OCR text looks like garbage (very few date-like patterns), try rotating 90°
+    if(!hasDateInText(pageText) && pageImages[i].w && pageImages[i].h){
+      log('Original orientation gave no dates — trying rotated 90°…','w');
+      const rotated = await rotateCanvas(pageImages[i].dataUrl, 90);
+      const {data:d2} = await worker.recognize(rotated);
+      if(hasDateInText(d2.text)) pageText = d2.text;
+      else {
+        const rotated2 = await rotateCanvas(pageImages[i].dataUrl, 270);
+        const {data:d3} = await worker.recognize(rotated2);
+        if(hasDateInText(d3.text)) pageText = d3.text;
+      }
+    }
+
+    log('Page '+(i+1)+' OCR done: '+pageText.split('\n').length+' lines');
+    texts.push(pageText);
+    setBar(40 + Math.round(((i+1)/pageImages.length)*30));
+  }
+
+  await worker.terminate();
+  document.getElementById('ocr-box').style.display='none';
+  return texts;
+}
+
+function hasDateInText(t){ return /\b\d{1,2}\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i.test(t); }
+
+async function rotateCanvas(dataUrl, degrees){
+  return new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas');
+      if(degrees===90||degrees===270){ c.width=img.height; c.height=img.width; }
+      else { c.width=img.width; c.height=img.height; }
+      const ctx=c.getContext('2d');
+      ctx.translate(c.width/2,c.height/2);
+      ctx.rotate(degrees*Math.PI/180);
+      ctx.drawImage(img,-img.width/2,-img.height/2);
+      res(c.toDataURL('image/png'));
+    };
+    img.src=dataUrl;
+  });
+}
+
+// ═══════════════ SMART OCR PARSER ═══════════════
+// The strategy: OCR gives us a big block of text. We need to extract the table.
+// The table has rows keyed by dates. Each row has columns separated by whitespace.
+// We use a combination of:
+// 1. Line-by-line scan for date anchors
+// 2. Pattern matching for BATCH entries (most reliable)
+// 3. Pattern matching for OP codes in morning slots
+function parseOCRText(rawText){
+  // Normalise OCR artifacts
+  const text = normaliseOCR(rawText);
+  log('Normalised text lines: '+text.split('\n').length);
+
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+  const days  = [];
+  const seenDates = new Set();
+
+  // Find date lines and extract surrounding context
+  for(let i=0;i<lines.length;i++){
+    const dateMatch = parseDate(lines[i]);
+    if(!dateMatch) continue;
+    const key = dateMatch.obj.toDateString();
+    if(seenDates.has(key)) continue;
+    seenDates.add(key);
+
+    // Gather a context block: up to 25 lines around this date
+    const start = Math.max(0, i);
+    const end   = Math.min(lines.length, i+25);
+    const block = lines.slice(start, end).join('\n');
+
+    const sessions = extractSessions(block, lines, i);
+    days.push({dateStr:dateMatch.str, dateObj:dateMatch.obj, sessions});
+    log('Date: '+dateMatch.str+' | morning OP:'+(sessions.s8_9?sessions.s8_9.codes.join(','):'–')+' | 2-3:'+(sessions.s2_3?sessions.s2_3.allBatches.map(b=>b.batch+':'+b.dept).join(','):'–'));
+  }
+
+  return days.sort((a,b)=>a.dateObj-b.dateObj);
+}
+
+function normaliseOCR(text){
+  return text
+    .replace(/[|l]/g, (c, i, s) => {
+      // Keep l in words, replace | with space
+      return c==='|' ? ' ' : c;
+    })
+    .replace(/0(?=[A-Z])/g,'O')   // 0pthalmology → Ophthalmology
+    .replace(/\bOphtha[l1]mo/gi, 'Ophthalmo')
+    .replace(/BAT[CG]H/gi, 'BATCH')
+    .replace(/SG[DO0]/gi, 'SGD')
+    .replace(/\bS6D\b/gi,'SGD')
+    .replace(/[-—–]{1,3}/g,'-')
+    .replace(/\s+/g,' ')
+    .replace(/ ?\n ?/g,'\n');
+}
+
+function extractSessions(block, allLines, dateLineIdx){
+  const sessions = {s8_9:null, s9_10:null, s2_3:null, s3_4:null};
+
+  // ── BATCH ENTRIES (most reliable pattern in OCR) ──
+  // Handles all variants: BATCH C-(SGD)-OP-7.4, BATCH A -SGD- OP- 8.2, etc.
+  const allBatches = extractAllBatches(block);
+  log('  batches found: '+allBatches.length+' → '+allBatches.map(b=>b.batch+':'+b.dept).join(', '), 'i');
+
+  if(allBatches.length > 0){
+    // Split into two groups: first 4 entries → 2-3 PM, next 4 entries → 3-4 PM
+    // (Each time slot has up to 4 batch entries, one per batch)
+    const half = Math.min(4, allBatches.length);
+    sessions.s2_3 = makePMSession(allBatches.slice(0, half));
+    if(allBatches.length > half) sessions.s3_4 = makePMSession(allBatches.slice(half));
+    // Even if only 1-3 batches appear, treat all as s2_3 unless clearly split
+    if(!sessions.s3_4 && allBatches.length > 0) sessions.s2_3 = makePMSession(allBatches);
+  }
+
+  // ── MORNING SLOTS: look for Ophthalmology + code ──
+  // Scan from date line onwards for OP/OF codes
+  for(let j=dateLineIdx; j<Math.min(dateLineIdx+20, allLines.length); j++){
+    const l = allLines[j];
+    if(/ophthal/i.test(l) || /\bOF\d|\bOP\d/.test(l)){
+      const codes = extractOPCodes(l);
+      if(codes.length){
+        const slot = makeMorningSession(l, codes);
+        if(!sessions.s8_9) sessions.s8_9 = slot;
+        else if(!sessions.s9_10) sessions.s9_10 = slot;
+      }
+    }
+  }
+
+  return sessions;
+}
+
+// ── Extract ALL batch entries from a text block ──
+function extractAllBatches(text){
+  const norm = text.toUpperCase()
+    .replace(/\(SGD\)/g,'SGD')
+    .replace(/\bSGD\b/g,'SGD')
+    .replace(/[–—]/g,'-')
+    .replace(/\s*-\s*/g,'-');
+
+  const entries = [];
+  const seen    = new Set();
+
+  // Pattern: BATCH X -SGD- DEPT - CODE  (many whitespace/dash variants)
+  const patterns = [
+    // Primary: BATCH A-SGD-OP-7.4
+    /BATCH\s*([ABCD])\s*-?\s*SGD\s*-\s*([A-Z]{1,4})\s*-\s*(\d[\d./]*)/g,
+    // Without SGD: BATCH A-OP-7.4
+    /BATCH\s*([ABCD])\s*-\s*([A-Z]{1,4})\s*-\s*(\d[\d./]*)/g,
+    // Very loose: BATCH A ... OP ... 7.4
+    /BATCH\s*([ABCD])[^BATCH]{0,30}?(OP|FM|EN|CM|SU|AN|IM|OG|PE|OR)\s*[-\s]*(\d[\d.]*)/g
+  ];
+
+  for(const rx of patterns){
+    let m;
+    while((m=rx.exec(norm))!==null){
+      const batch = m[1];
+      const dept  = m[2];
+      const cnum  = m[3].split('/')[0];
+      const key   = batch+'-'+dept+'-'+cnum;
+      if(!seen.has(key)){
+        seen.add(key);
+        const isOP = dept==='OP'||dept==='OF';
+        const code = isOP ? dept+cnum : null;
+        entries.push({batch, dept, code, is_op:isOP});
+      }
+    }
+    if(entries.length>0) break; // use first pattern that works
+  }
+
+  return entries;
+}
+
+function makePMSession(batchList){
+  const allBatches = batchList.map(b=>({...b}));
+  const opBatches  = allBatches.filter(b=>b.is_op);
+  const opCodes    = [...new Set(opBatches.map(b=>b.code).filter(Boolean))];
+  const opLabels   = [...new Set(opBatches.map(b=>b.batch))];
+  return {dept:'SGD', topic:null, codes:opCodes, batches:opLabels, allBatches, hasOP:opBatches.length>0};
+}
+
+function makeMorningSession(line, codes){
+  let topic = null;
+  const m = line.match(/ophthal\w*\s*(?:\([^)]+\))?\s*[-:]?\s*([A-Za-z][^OP\dOF]{4,60}?)(?=OP\d|OF\d|$)/i);
+  if(m) topic = m[1].replace(/[-–()\[\]]/g,'').trim();
+  if(!topic||topic.length<3) topic=null;
+  return {dept:'Ophthalmology', topic, codes, batches:[], allBatches:[], hasOP:false};
+}
+
+function extractOPCodes(text){
+  const raw = text.match(/\b(OP|OF)\s*(\d+\s*[.,]\s*\d+)\b/gi)||[];
+  return [...new Set(raw.map(c=>{
+    const m=c.match(/(OP|OF)\s*(\d+\s*[.,]\s*\d+)/i);
+    return m ? m[1].toUpperCase()+m[2].replace(/[\s,]/g,'.').replace(/\.\./g,'.') : c.trim().toUpperCase();
+  }))];
+}
+
+// ── Date parsing ──
+function parseDate(str){
+  if(!str) return null;
+  const m1=str.match(/(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s*(\d{2,4})?/i);
+  if(m1){
+    let yr=m1[3]?parseInt(m1[3]):new Date().getFullYear();
+    if(yr<100) yr+=2000;
+    const obj=new Date(yr,monthIdx(m1[2]),parseInt(m1[1]));
+    if(!isNaN(obj)&&obj.getFullYear()>2000) return {str:m1[0].trim(),obj};
+  }
+  return null;
+}
+
+function monthIdx(n){
+  return ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].findIndex(x=>n.toLowerCase().startsWith(x));
+}
+
+function countOP(){
+  let c=0;
+  parsedDays.forEach(d=>Object.values(d.sessions).forEach(s=>{if(s&&(s.codes?.length||s.batches?.length)) c++;}));
+  return c;
+}
+
+// ═══════════════ PREVIEW TABLE ═══════════════
+function showPreview(){
+  const wrap=document.getElementById('prev-wrap');
+  const tbl =document.getElementById('prev-tbl');
+  wrap.style.display='block';
+  let html='<thead><tr><th>Date</th><th>Day</th><th>8-9 AM</th><th>9-10 AM</th><th>2-3 PM (all batches)</th><th>3-4 PM (all batches)</th></tr></thead><tbody>';
+  parsedDays.forEach(d=>{
+    const day=DAYS[d.dateObj?.getDay()??0];
+    const fm=s=>s&&s.codes?.length?s.codes.join(','):s?'✓':'—';
+    const fa=s=>{
+      if(!s) return '—';
+      if(s.allBatches?.length) return s.allBatches.map(b=>`${b.batch}:${b.dept}`).join(', ');
+      return fm(s);
+    };
+    html+=`<tr><td>${d.dateStr}</td><td>${day}</td><td>${fm(d.sessions.s8_9)}</td><td>${fm(d.sessions.s9_10)}</td><td>${fa(d.sessions.s2_3)}</td><td>${fa(d.sessions.s3_4)}</td></tr>`;
+  });
+  html+='</tbody>';
+  tbl.innerHTML=html;
+}
+
+// ═══════════════ CALENDAR ═══════════════
+function buildCalendar(){
+  if(!parsedDays.length) return;
+  const d0    = parsedDays[0].dateObj;
+  const month = d0.getMonth();
+  const year  = d0.getFullYear();
+  const grid  = document.getElementById('cal-grid');
+  grid.innerHTML='';
+  ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(h=>{const el=document.createElement('div');el.className='cal-hdr';el.textContent=h;grid.appendChild(el);});
+  const first = new Date(year,month,1).getDay();
+  for(let i=0;i<first;i++){const el=document.createElement('div');el.className='cal-day empty';grid.appendChild(el);}
+  const dim=new Date(year,month+1,0).getDate();
+  for(let day=1;day<=dim;day++){
+    const date=new Date(year,month,day);
+    const dk  =`${year}-${month+1}-${day}`;
+    const inPDF=calDates.has(date.toDateString());
+    const isSun=date.getDay()===0;
+    const el=document.createElement('div');
+    el.textContent=day;
+    if(!inPDF){ el.className='cal-day disabled'; }
+    else {
+      el.className='cal-day'+(isSun?' sunday':'');
+      const isSel=activeDoc!==null&&(leaveMap[activeDoc]||[]).includes(dk);
+      if(isSel) el.classList.add('sel');
+      el.onclick=()=>toggleLeave(dk,el);
+    }
+    grid.appendChild(el);
+  }
+}
+
+function selDoc(idx){
+  activeDoc=idx;
+  document.querySelectorAll('.dchip').forEach((c,i)=>c.classList.toggle('sel',i===idx));
+  document.getElementById('cal-wrap').style.display='block';
+  document.getElementById('cal-title').textContent='Leave dates for '+DOCS[idx].name+':';
+  buildCalendar();
+  renderLeaveTags();
+}
+
+function toggleLeave(dk,el){
+  if(activeDoc===null) return;
+  if(!leaveMap[activeDoc]) leaveMap[activeDoc]=[];
+  const arr=leaveMap[activeDoc];
+  const i=arr.indexOf(dk);
+  if(i>=0){arr.splice(i,1);el.classList.remove('sel');}
+  else{arr.push(dk);el.classList.add('sel');}
+  renderLeaveTags();
+}
+
+function removeLeave(docIdx,dk){
+  leaveMap[docIdx]=(leaveMap[docIdx]||[]).filter(k=>k!==dk);
+  buildCalendar(); renderLeaveTags();
+}
+
+function renderLeaveTags(){
+  const wrap=document.getElementById('ltags');
+  wrap.innerHTML='';
+  if(activeDoc===null) return;
+  (leaveMap[activeDoc]||[]).forEach(dk=>{
+    const [y,m,d]=dk.split('-').map(Number);
+    const lbl=`${d} ${MONS[m-1]} ${y}`;
+    const el=document.createElement('div');el.className='ltag';
+    el.innerHTML=`${lbl} <button onclick="removeLeave(${activeDoc},'${dk}')">✕</button>`;
+    wrap.appendChild(el);
+  });
+}
+
+// ═══════════════ SCHEDULE GENERATION ═══════════════
+function generateSchedule(){
+  scheduleRows=[];
+  parsedDays.forEach(dayData=>{
+    if(!dayData.dateObj||isNaN(dayData.dateObj)) return;
+    const d=dayData.dateObj;
+    const dom=d.getDate(), yr=d.getFullYear(), mo=d.getMonth();
+    const baseIdx=(dom-1)%4;
+    let assignedDoc=null, isSub=false;
+    for(let attempt=0;attempt<4;attempt++){
+      const docIdx=(baseIdx+attempt)%4;
+      const dk=`${yr}-${mo+1}-${dom}`;
+      const onLeave=(leaveMap[docIdx]||[]).includes(dk);
+      if(!onLeave){assignedDoc=docIdx;isSub=attempt>0;break;}
+    }
+    const hasOP=Object.values(dayData.sessions).some(s=>s&&(s.codes?.length||s.batches?.length));
+    scheduleRows.push({dateObj:d,dateStr:dayData.dateStr,sessions:dayData.sessions,assignedDoc,isSub,hasOP,dom,mo,yr});
+  });
+  renderTable();
+  renderStats();
+  const mo=parsedDays[0]?.dateObj?.getMonth()??parseInt(document.getElementById('sel-month').value);
+  const yr=parsedDays[0]?.dateObj?.getFullYear()??parseInt(document.getElementById('sel-year').value);
+  document.getElementById('sch-title').textContent=`${MONS[mo]} ${yr} — OP Schedule`;
+  document.getElementById('sch-sub').textContent=`${scheduleRows.length} days from PDF · 8–9 AM, 9–10 AM, 2–3 PM, 3–4 PM`;
+  goStep(3);
+  showToast('Schedule ready — '+scheduleRows.length+' days','ok');
+}
+
+// ═══════════════ TABLE RENDERING ═══════════════
+function renderTable(){
+  const tbody=document.getElementById('sch-body');
+  tbody.innerHTML='';
+  let shown=0;
+  scheduleRows.forEach(row=>{
+    const {s8_9,s9_10,s2_3,s3_4}=row.sessions;
+    if(slotFilter==='morning'&&!s8_9&&!s9_10) return;
+    if(slotFilter==='afternoon'&&!s2_3&&!s3_4) return;
+    if(batchFilter!=='all'){
+      const has=hasBatch(s2_3,batchFilter)||hasBatch(s3_4,batchFilter);
+      if(!has) return;
+    }
+    const tr=document.createElement('tr');
+    const isSun=row.dateObj.getDay()===0;
+    if(isSun) tr.classList.add('sunday-row');
+    tr.innerHTML=`
+      <td><div class="dt-date">${row.dom} ${MONS[row.mo]}</div><div class="dt-day">${DAYS[row.dateObj.getDay()]}</div></td>
+      <td>${cellMorning(s8_9)}</td>
+      <td>${cellMorning(s9_10)}</td>
+      <td>${cellAfternoon(s2_3)}</td>
+      <td>${cellAfternoon(s3_4)}</td>
+      <td>${cellFaculty(row)}</td>`;
+    tbody.appendChild(tr); shown++;
+  });
+  if(!shown) tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:36px;color:var(--muted)">No sessions match this filter</td></tr>';
+}
+
+function hasBatch(s,b){
+  if(!s) return false;
+  if((s.batches||[]).includes(b)) return true;
+  if((s.allBatches||[]).some(x=>x.batch===b)) return true;
+  return false;
+}
+
+function cellMorning(s){
+  if(!s) return '<span style="color:#cbd5e1;font-size:11px">—</span>';
+  let h='<div class="sblk sblk-m"><div class="sdept">Ophthalmology</div>';
+  if(s.topic) h+=`<div class="stopic">${esc(s.topic)}</div>`;
+  (s.codes||[]).forEach(c=>{
+    const info=OP_DB[c]||OP_DB[c.replace('OF','OP')]||null;
+    if(info){
+      if(!s.topic) h+=`<div class="stopic">${esc(info.topic)}</div>`;
+      h+=`<div class="scomp">${esc(info.comp)}</div>`;
+    }
+    h+=`<span class="scode">${esc(c)}</span> `;
+  });
+  return h+'</div>';
+}
+
+function cellAfternoon(s){
+  if(!s) return '<span style="color:#cbd5e1;font-size:11px">—</span>';
+  let h='<div class="sblk sblk-a"><div class="sdept">SGD Assignment</div>';
+  const blist=s.allBatches||[];
+  if(blist.length){
+    blist.forEach(b=>{
+      const isOP=b.is_op;
+      const hi=batchFilter!=='all'&&b.batch===batchFilter;
+      h+=`<span class="btag b${b.batch}${isOP?' bop':''}"${hi?' style="outline:2px solid currentColor;outline-offset:1px"':''}>`;
+      h+=`${b.batch}: ${b.dept}`;
+      if(b.code) h+=` <em>${b.code}</em>`;
+      h+=`</span> `;
+    });
+    h+='<br>';
+  } else if(s.batches?.length){
+    s.batches.forEach(b=>h+=`<span class="btag b${b} bop">Batch ${b} OP</span> `);
+    h+='<br>';
+  }
+  (s.codes||[]).forEach(c=>{
+    const info=OP_DB[c]||OP_DB[c.replace('OF','OP')]||null;
+    if(info){ h+=`<div class="stopic">👁️ ${esc(info.topic)}</div><div class="scomp">${esc(info.comp)}</div>`; }
+    h+=`<span class="scode">${esc(c)}</span> `;
+  });
+  return h+'</div>';
+}
+
+function cellFaculty(row){
+  if(row.dateObj.getDay()===0) return '<span style="color:#cbd5e1;font-size:11px">—</span>';
+  if(!row.hasOP) return '<span style="color:#94a3b8;font-size:11px">No OP</span>';
+  if(row.assignedDoc===null) return '<span class="fpill fsub">All on leave</span>';
+  const doc=DOCS[row.assignedDoc];
+  return `<span class="fpill ${doc.cls}">${esc(doc.short)}${row.isSub?' <span style="font-size:9px;opacity:.7">↺sub</span>':''}</span><div style="font-size:10px;color:var(--muted);margin-top:2px">P${row.assignedDoc+1}</div>`;
+}
+
+function esc(s){ return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'):''; }
+
+// ═══════════════ STATS ═══════════════
+function renderStats(){
+  const opDays=scheduleRows.filter(r=>r.hasOP).length;
+  const fc=[0,0,0,0];
+  scheduleRows.forEach(r=>{if(r.assignedDoc!==null&&r.hasOP) fc[r.assignedDoc]++;});
+  const topDoc=DOCS[fc.indexOf(Math.max(...fc))]?.short||'—';
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><div class="stico">📅</div><div><div class="stv">${scheduleRows.length}</div><div class="stl">Days in PDF</div></div></div>
+    <div class="stat"><div class="stico">👁️</div><div><div class="stv">${opDays}</div><div class="stl">OP Sessions</div></div></div>
+    <div class="stat"><div class="stico">👩‍⚕️</div><div><div class="stv">${fc.filter(c=>c>0).length}</div><div class="stl">Faculty Active</div></div></div>
+    <div class="stat"><div class="stico">🏆</div><div><div class="stv" style="font-size:14px">${esc(topDoc)}</div><div class="stl">Most Sessions</div></div></div>`;
+}
+
+// ═══════════════ FILTERS ═══════════════
+function setSlotFilter(v,el){
+  document.querySelectorAll('#slot-chips .fchip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active'); slotFilter=v; renderTable();
+}
+function setBatchFilter(v,el){
+  document.querySelectorAll('#batch-chips .fchip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active'); batchFilter=v; renderTable();
+}
+
+// ═══════════════ EXCEL ═══════════════
+function exportExcel(){
+  if(!scheduleRows.length){showToast('Generate schedule first','err');return;}
+  if(typeof XLSX==='undefined'){showToast('XLSX library not loaded','err');return;}
+  const mo=scheduleRows[0].mo, yr=scheduleRows[0].yr;
+  const hdr=['Date','Day','8-9 Dept','8-9 Topic','8-9 Comp','8-9 Code','9-10 Dept','9-10 Topic','9-10 Comp','9-10 Code','2-3 All Batches','2-3 OP Batches','2-3 OP Code','2-3 Topic','2-3 Comp','3-4 All Batches','3-4 OP Batches','3-4 OP Code','3-4 Topic','3-4 Comp','Faculty','Priority','Substitution'];
+  const rows=[hdr];
+  const fmM=s=>{if(!s)return['','','',''];const c=(s.codes||[])[0]||'';const info=OP_DB[c]||OP_DB[c.replace('OF','OP')]||{};return['Ophthalmology',s.topic||info.topic||'',info.comp||'',c];};
+  const fmA=s=>{if(!s)return['','','','',''];const all=(s.allBatches||[]).map(b=>`${b.batch}:${b.dept}${b.code?'('+b.code+')':''}`).join(', ');const opB=(s.batches||[]).join('/');const c=(s.codes||[])[0]||'';const info=OP_DB[c]||OP_DB[c.replace('OF','OP')]||{};return[all,opB,c,info.topic||'',info.comp||''];};
+  scheduleRows.forEach(r=>{
+    const ds=`${r.dom} ${MONS[r.mo]} ${r.yr}`;
+    const doc=r.assignedDoc!==null?DOCS[r.assignedDoc].name:'';
+    rows.push([ds,DAYS[r.dateObj.getDay()],...fmM(r.sessions.s8_9),...fmM(r.sessions.s9_10),...fmA(r.sessions.s2_3),...fmA(r.sessions.s3_4),doc,r.assignedDoc!==null?'P'+(r.assignedDoc+1):'',r.isSub?'Yes':'No']);
+  });
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:16},{wch:7},{wch:14},{wch:26},{wch:44},{wch:10},{wch:14},{wch:26},{wch:44},{wch:10},{wch:38},{wch:12},{wch:10},{wch:26},{wch:44},{wch:38},{wch:12},{wch:10},{wch:26},{wch:44},{wch:24},{wch:6},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws,'OP Schedule');
+  const fc=[0,0,0,0];scheduleRows.forEach(r=>{if(r.assignedDoc!==null&&r.hasOP)fc[r.assignedDoc]++;});
+  const sum=[['Ophthalmology PG Schedule'],['Month: '+MONS[mo]+' '+yr],['Days (from PDF): '+scheduleRows.length],['OP Session Days: '+scheduleRows.filter(r=>r.hasOP).length],[],['Faculty','Priority','Sessions Assigned'],...DOCS.map((d,i)=>[d.name,'P'+(i+1),fc[i]])];
+  const ws2=XLSX.utils.aoa_to_sheet(sum);
+  ws2['!cols']=[{wch:30},{wch:10},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,ws2,'Summary');
+  XLSX.writeFile(wb,`OP_Schedule_${MONS[mo]}_${yr}.xlsx`);
+  showToast('Excel downloaded!','ok');
+}
+
+// ═══════════════ UI UTILS ═══════════════
+function setBar(pct){document.getElementById('pbar').style.width=pct+'%';document.getElementById('prog-pct').textContent=pct+'%';}
+function clearLog(){document.getElementById('logbox').innerHTML='';}
+function log(msg,type='ok'){const b=document.getElementById('logbox');const l=document.createElement('div');l.className='ll '+type;l.textContent='› '+msg;b.appendChild(l);b.scrollTop=b.scrollHeight;}
+function showToast(msg,type=''){const w=document.getElementById('toasts');const el=document.createElement('div');el.className='toast '+(type==='ok'?'ok':type==='err'?'err':'info');el.textContent=msg;w.appendChild(el);setTimeout(()=>el.remove(),3500);}
+function toDataURL(file){return new Promise((r,j)=>{const rd=new FileReader();rd.onload=()=>r(rd.result);rd.onerror=()=>j(new Error('Read failed'));rd.readAsDataURL(file);});}
+
+// INIT
+(function(){ const n=new Date(); document.getElementById('sel-month').value=n.getMonth(); document.getElementById('sel-year').value=n.getFullYear(); })();
+</script>
+</body>
+</html>
